@@ -1,28 +1,133 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import scipy.special
 
-def solve_diff(D, L, N, T, dt):
+def solve_diff(D, L, N, T, dt, t_arr=None, verbose=True, animate=False):
     dx = L / N
     dt = min(dt, (0.25 * (dx**2 / D)))
+    
     timesteps = T / dt
-    c = np.zeros((N, N, int(timesteps))) # shape is x, y, time
+    c = np.zeros((N + 1, N + 1))
+     
+    c[0, :] = 1
     
-    # step 0 
-    c[0, :, 0] = 1
+    save_steps = {}
+    if t_arr is not None:
+        for t in t_arr:
+            index = int(t / dt)
+            save_steps[index] = t
+    snapshots = {} 
     
-    for t in range(0, int(timesteps) - 1):
-        grid = c[:, :, t]
+    frames = []
+    
+    for t in range(int(timesteps) + 1):
+        if verbose:
+            print(f"Now at t: {t}/{timesteps}")
+        grid = c.copy()
         
+        if t in save_steps:
+            snapshots[save_steps[t]] = grid.copy()
+            
+        if animate:
+            if t % 10 == 0:
+                frames.append(c.copy())
+                
         y_u = np.roll(grid, -1, axis=0)
         y_d = np.roll(grid, 1, axis=0)
         x_r = np.roll(grid, -1, axis=1)
         x_l = np.roll(grid, 1, axis=1)
         
-        c[:, :, t+1] = grid + ((D * dt) / dx**2) * (x_r + x_l - (4 * grid) + y_u + y_d)
-        c[0, :, t+1] = 1
-        c[-1, :, t+1] = 0
+        c = grid + ((D * dt) / dx**2) * (x_r + x_l - (4 * grid) + y_u + y_d)
+        c[0, :] = 1
+        c[-1, :] = 0
+    
+    if animate:
+        return frames
+    
+    return snapshots
+            
         
-    return c
+def analytic_sol(D, t, terms, y):
+    c_analytical = np.zeros((y.shape[0], terms))
+    for i in range(terms):
+        er1 = (1 - y + 2 * i) / (2 * np.sqrt(D * t))
+        er2 = (1 + y + 2 * i) / (2 * np.sqrt(D * t))
+        c_analytical[:, i] = scipy.special.erfc(er1) - scipy.special.erfc(er2)
+    c_analytical = np.sum(c_analytical, axis=1)
 
-print(solve_diff(1, 1, 10, 1, 0.1)[:, :, 100])
+    return c_analytical
+        
 
+def check_sol(D, L, N, T, dt, t_arr, terms):
+    num_sol = solve_diff(D, L, N, T, dt, t_arr)
+    dx = L / N
+    y = np.arange(0, L + 1e-12, dx)
+    closed_form = []
+    
+    for t, c in num_sol.items():
+        num = c[:, 5]
+        braba = analytic_sol(D, t, terms, y)
+        closed_form.append(braba)
+        # closed --
+        plt.plot(y, braba, label=f"t= {t}", ls="--")
+        # num approx
+        plt.plot(y, num[::-1])
+    plt.title("C as function of y")
+    plt.legend()
+    plt.show()
+
+
+t_arr = np.array([0, 0.001, 0.01, 0.1, 1], dtype="float")
+check_sol(1, 1, 100, 1, 0.1, t_arr, terms=10)
+
+snapshots = solve_diff(1, 1, 100, 1, 0.1, t_arr)
+
+
+# 2d domain for different t
+fig, ax = plt.subplots(2, 3, dpi=120, figsize=(12, 8), layout='constrained')
+axes = ax.flatten() 
+
+
+for i, (t, c) in enumerate(sorted(snapshots.items())):
+    im = axes[i].imshow(c, cmap='magma', origin='upper', extent=[0, 1, 0, 1], vmin=0, vmax=1)
+    
+    axes[i].set_title(f"t = {t}")
+    axes[i].set_xlabel("x")
+    axes[i].set_ylabel("y")
+
+for j in range(len(snapshots), len(axes)):
+    axes[j].axis('off')
+
+fig.colorbar(im, ax=axes, label='Concentration', fraction=0.05, shrink=0.9)
+
+plt.show()
+
+video_data = solve_diff(1, 1, 100, 1, 0.1, animate=True)
+
+
+# generate animated plot
+fig, ax = plt.subplots()
+im = ax.imshow(video_data[0], cmap='magma', origin='upper', animated=True, vmin=0, vmax=1)
+ax.set_title("Diffusion Animation")
+fig.colorbar(im, label="Concentration")
+
+def update(i):
+    im.set_data(video_data[i])
+    ax.set_title(f"Time Step: {i*10}") 
+    return [im]
+
+ani = animation.FuncAnimation(fig, update, frames=len(video_data), interval=30, blit=True)
+ani.save('diffusion_heat.gif', writer='pillow', fps=30)
+
+plt.show()
+
+
+        
+
+        
+    
+   
+        
+    
+        
