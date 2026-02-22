@@ -5,7 +5,7 @@ This README provides an overview of the implementation and execution of the nume
 
 # Scientific Computing - Assignment 1 (Group 20)
 
-**Authors:** Joeri Fresen (10607412), Alfonso Gondra, and Max van Beusekom (13979345).
+**Authors:** Joeri Fresen (10607412), Alfonso Gondra (15843785), and Max van Beusekom (13979345).
 
 This project involves the development and analysis of numerical solutions for the first assignment set of the scientific computing course.
 ## Project Structure
