@@ -1,45 +1,133 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import scipy.special
 
-def solve_diffusion_2d(N, T, dt, D=1.0):
-    """
-    Solve the 2D time-dependent diffusion equation using an explicit finite difference scheme.
-    Handles periodic boundaries in x and Dirichlet boundaries in y.
-    """
-    dx = 1.0 / N 
+def solve_diff(D, L, N, T, dt, t_arr=None, verbose=True, animate=False):
+    dx = L / N
+    dt = min(dt, (0.25 * (dx**2 / D)))
     
-    # Stability condition: 4*D*dt/dx^2 <= 1 
-    # Change: Added an automatic stability check to prevent the simulation from "blowing up"  #
-    stability = (4 * D * dt) / (dx**2) 
-    if stability > 1:
-        print(f"Unstable! 4D*dt/dx^2 = {stability}. Reducing dt.")
-        dt = 0.25 * (dx**2 / D) # Adjusts dt to meet the stability requirement 
+    timesteps = T / dt
+    c = np.zeros((N + 1, N + 1))
+     
+    c[0, :] = 1
     
-    steps = int(T / dt) 
+    save_steps = {}
+    if t_arr is not None:
+        for t in t_arr:
+            index = int(t / dt)
+            save_steps[index] = t
+    snapshots = {} 
     
-    # Initial condition: concentration c=0 for 0 <= y < 1 
-    # Change: Switched to a 2D grid (N+1, N+1) to properly model the square domain  #
-    c = np.zeros((N + 1, N + 1)) 
+    frames = []
     
-    # Boundary conditions: c=1 at the top (y=1) and c=0 at the bottom (y=0) 
-    c[0, :] = 1.0  
-    c[-1, :] = 0.0 
+    for t in range(int(timesteps) + 1):
+        if verbose:
+            print(f"Now at t: {t}/{timesteps}")
+        grid = c.copy()
+        
+        if t in save_steps:
+            snapshots[save_steps[t]] = grid.copy()
+            
+        if animate:
+            if t % 10 == 0:
+                frames.append(c.copy())
+                
+        y_u = np.roll(grid, -1, axis=0)
+        y_d = np.roll(grid, 1, axis=0)
+        x_r = np.roll(grid, -1, axis=1)
+        x_l = np.roll(grid, 1, axis=1)
+        
+        c = grid + ((D * dt) / dx**2) * (x_r + x_l - (4 * grid) + y_u + y_d)
+        c[0, :] = 1
+        c[-1, :] = 0
+    
+    if animate:
+        return frames
+    
+    return snapshots
+            
+        
+def analytic_sol(D, t, terms, y):
+    c_analytical = np.zeros((y.shape[0], terms))
+    for i in range(terms):
+        er1 = (1 - y + 2 * i) / (2 * np.sqrt(D * t))
+        er2 = (1 + y + 2 * i) / (2 * np.sqrt(D * t))
+        c_analytical[:, i] = scipy.special.erfc(er1) - scipy.special.erfc(er2)
+    c_analytical = np.sum(c_analytical, axis=1)
 
-    for _ in range(steps):
-        # Change: Implemented np.roll to handle the Periodic Boundary Conditions (BCs) in the x-direction  #
-        # This allows particles exiting the right side to re-enter from the left.
-        up = np.roll(c, -1, axis=0)    # y+1
-        down = np.roll(c, 1, axis=0)   # y-1
-        left = np.roll(c, -1, axis=1)  # x+1 (Periodic)
-        right = np.roll(c, 1, axis=1)  # x-1 (Periodic)
+    return c_analytical
         
-        # Explicit scheme update formula 
-        # Change: Vectorized the 5-point stencil update for significant performance gains  #
-        c_new = c + (D * dt / dx**2) * (up + down + left + right - 4*c) 
+
+def check_sol(D, L, N, T, dt, t_arr, terms):
+    num_sol = solve_diff(D, L, N, T, dt, t_arr)
+    dx = L / N
+    y = np.arange(0, L + 1e-12, dx)
+    closed_form = []
+    
+    for t, c in num_sol.items():
+        num = c[:, 5]
+        braba = analytic_sol(D, t, terms, y)
+        closed_form.append(braba)
+        # closed --
+        plt.plot(y, braba, label=f"t= {t}", ls="--")
+        # num approx
+        plt.plot(y, num[::-1])
+    plt.title("C as function of y")
+    plt.legend()
+    plt.show()
+
+
+t_arr = np.array([0, 0.001, 0.01, 0.1, 1], dtype="float")
+check_sol(1, 1, 100, 1, 0.1, t_arr, terms=10)
+
+snapshots = solve_diff(1, 1, 100, 1, 0.1, t_arr)
+
+
+# 2d domain for different t
+fig, ax = plt.subplots(2, 3, dpi=120, figsize=(12, 8), layout='constrained')
+axes = ax.flatten() 
+
+
+for i, (t, c) in enumerate(sorted(snapshots.items())):
+    im = axes[i].imshow(c, cmap='magma', origin='upper', extent=[0, 1, 0, 1], vmin=0, vmax=1)
+    
+    axes[i].set_title(f"t = {t}")
+    axes[i].set_xlabel("x")
+    axes[i].set_ylabel("y")
+
+for j in range(len(snapshots), len(axes)):
+    axes[j].axis('off')
+
+fig.colorbar(im, ax=axes, label='Concentration', fraction=0.05, shrink=0.9)
+
+plt.show()
+
+video_data = solve_diff(1, 1, 100, 1, 0.1, animate=True)
+
+
+# generate animated plot
+fig, ax = plt.subplots()
+im = ax.imshow(video_data[0], cmap='magma', origin='upper', animated=True, vmin=0, vmax=1)
+ax.set_title("Diffusion Animation")
+fig.colorbar(im, label="Concentration")
+
+def update(i):
+    im.set_data(video_data[i])
+    ax.set_title(f"Time Step: {i*10}") 
+    return [im]
+
+ani = animation.FuncAnimation(fig, update, frames=len(video_data), interval=30, blit=True)
+ani.save('diffusion_heat.gif', writer='pillow', fps=30)
+
+plt.show()
+
+
         
-        # Enforce Dirichlet boundaries in Y after each step 
-        # Change: Ensured top and bottom rows remain constant at 1.0 and 0.0 respectively  #
-        c_new[0, :] = 1.0
-        c_new[-1, :] = 0.0
-        c = c_new
+
         
-    return c
+    
+   
+        
+    
+        
