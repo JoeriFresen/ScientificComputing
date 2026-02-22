@@ -63,7 +63,7 @@ def run_experiment_b():
         ax.set_xlabel("Position (x)")
         if i == 0:
             ax.set_ylabel("Amplitude (Psi)")
-        ax.legend()
+            ax.legend()
         ax.grid(True)
 
     plt.tight_layout()
@@ -153,14 +153,15 @@ def run_experiment_bonus():
     psi_leapfrog, _ = solve_wave_equation_leapfrog(psi0, N, dt, c=c, L=L, t_max=t_long)
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    fig.suptitle("Euler vs Leapfrog: Stability Comparison", fontsize=16)
+    fig.suptitle(r"Euler vs Leapfrog — IC: $\Psi_0 = \sin(2\pi x)$, $c = 1$, $N = 100$, $\Delta t = 0.001$",
+                 fontsize=14)
 
     # Panel 1
     ax = axes[0]
     ax.plot(x, analytical, 'k--', label=f"Exact (t={t_compare})", alpha=0.5)
     ax.plot(x, psi_euler_short[-1, :], 'r-', label=f"Euler (t={t_compare})")
     ax.plot(x, psi_lf_short[-1, :], 'b-', label=f"Leapfrog (t={t_compare})")
-    ax.set_title(f"String State at t = {t_compare}")
+    ax.set_title(f"String State at t = {t_compare}s")
     ax.set_xlabel("Position (x)")
     ax.set_ylabel("Amplitude (Ψ)")
     ax.legend()
@@ -178,7 +179,7 @@ def run_experiment_bonus():
     ax.semilogy(times, amp_euler, 'r-', label="Euler", linewidth=1)
     ax.semilogy(times, amp_leapfrog, 'b-', label="Leapfrog", linewidth=1)
     ax.axhline(y=1.0, color='k', linestyle='--', alpha=0.5, label="True amplitude")
-    ax.set_title("Maximum Amplitude Over Time")
+    ax.set_title("Max Amplitude Over Time (energy proxy)")
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("Max |Ψ| (log scale)")
     ax.legend()
