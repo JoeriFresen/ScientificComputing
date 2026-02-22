@@ -67,14 +67,20 @@ def check_sol(D, L, N, T, dt, t_arr, terms):
     
     for t, c in num_sol.items():
         num = c[:, 5]
-        braba = analytic_sol(D, t, terms, y)
-        closed_form.append(braba)
+        ana_sol = analytic_sol(D, t, terms, y)
+        closed_form.append(ana_sol)
         # closed --
-        plt.plot(y, braba, label=f"t= {t}", ls="--")
+        plt.plot(y, ana_sol, color='lightskyblue')
         # num approx
-        plt.plot(y, num[::-1])
-    plt.title("C as function of y")
+        plt.plot(y, num[::-1], ls='--', zorder =3, label=f"t= {t}", lw=0.7)
+    # manual legend entry
+    plt.plot([], [], color='lightskyblue', label='closed form solution')
+    plt.xlabel("y-coordinate")
+    plt.ylabel("Concentration c(y)")
+    plt.title("C(y) numerical approximation vs closed form solution\n comparison at different t")
     plt.legend()
+    plt.tight_layout()
+    plt.savefig('plots/c(y) num vs cf.png', dpi=300, bbox_inches='tight')
     plt.show()
 
 
@@ -85,9 +91,10 @@ snapshots = solve_diff(1, 1, 100, 1, 0.1, t_arr)
 
 
 # 2d domain for different t
-fig, ax = plt.subplots(2, 3, dpi=120, figsize=(12, 8), layout='constrained')
+fig, ax = plt.subplots(2, 3, dpi=300, figsize=(12, 8), layout='constrained')
 axes = ax.flatten() 
 
+im = None 
 
 for i, (t, c) in enumerate(sorted(snapshots.items())):
     im = axes[i].imshow(c, cmap='magma', origin='upper', extent=[0, 1, 0, 1], vmin=0, vmax=1)
@@ -99,28 +106,29 @@ for i, (t, c) in enumerate(sorted(snapshots.items())):
 for j in range(len(snapshots), len(axes)):
     axes[j].axis('off')
 
-fig.colorbar(im, ax=axes, label='Concentration', fraction=0.05, shrink=0.9)
-
+fig.colorbar(im, ax=axes, label='Concentration')
+fig.suptitle("C(x,y,t) at different times")
+plt.savefig('plots/concentration at different t.png')
 plt.show()
 
 video_data = solve_diff(1, 1, 100, 1, 0.1, animate=True)
 
 
 # generate animated plot
-fig, ax = plt.subplots()
-im = ax.imshow(video_data[0], cmap='magma', origin='upper', animated=True, vmin=0, vmax=1)
-ax.set_title("Diffusion Animation")
-fig.colorbar(im, label="Concentration")
+# fig, ax = plt.subplots()
+# im = ax.imshow(video_data[0], cmap='magma', origin='upper', animated=True, vmin=0, vmax=1)
+# ax.set_title("Diffusion Animation")
+# fig.colorbar(im, label="Concentration")
 
-def update(i):
-    im.set_data(video_data[i])
-    ax.set_title(f"Time Step: {i*10}") 
-    return [im]
+# def update(i):
+#     im.set_data(video_data[i])
+#     ax.set_title(f"Time Step: {i*10}") 
+#     return [im]
 
-ani = animation.FuncAnimation(fig, update, frames=len(video_data), interval=30, blit=True)
-ani.save('diffusion_heat.gif', writer='pillow', fps=30)
+# ani = animation.FuncAnimation(fig, update, frames=len(video_data), interval=30, blit=True)
+# ani.save('diffusion_heat.gif', writer='pillow', fps=30)
 
-plt.show()
+# plt.show()
 
 
         
