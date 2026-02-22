@@ -4,9 +4,9 @@ from iterative_solvers import solve_laplace
 
 # 1. Setup the grid
 N = 50
-omega = 1.8 # A good guess for SOR optimal omega on small grids [cite: 204]
+omega = 1.8 # A good guess for SOR optimal omega on small grids 
 
-# 2. Create the Object Mask (Assignment 1.6 K) [cite: 216, 227]
+# 2. Create the Object Mask (Assignment 1.6 K)
 # Let's make a square sink in the middle of the room
 object_mask = np.zeros((N + 1, N + 1), dtype=bool)
 # Put a square from x=20 to 30, and y=20 to 30

@@ -13,7 +13,7 @@ def run_exercise_I():
     _, _, hist_sor_1_8 = solve_laplace(N, method='SOR', omega=1.8, return_history=True) # Near optimal
 
     plt.figure(figsize=(8, 6))
-    # semilogy creates the requested log-lin plot automatically [cite: 209]
+    # semilogy creates the requested log-lin plot automatically 
     plt.semilogy(hist_jacobi, label='Jacobi')
     plt.semilogy(hist_gs, label='Gauss-Seidel')
     plt.semilogy(hist_sor_1_5, label='SOR ($\\omega=1.5$)')
@@ -27,9 +27,9 @@ def run_exercise_I():
     plt.show()
 
 def run_exercise_J():
-    """Finds optimal omega for different N values[cite: 211]."""
+    """Finds optimal omega for different N values."""
     N_values = [10, 20, 30, 40]
-    omegas = np.linspace(1.5, 1.95, 20) # We know it's between 1.7 and 2.0 [cite: 204]
+    omegas = np.linspace(1.5, 1.95, 20) # We know it's between 1.7 and 2.0
     
     optimal_omegas = []
     

@@ -25,7 +25,7 @@ class TestScientificComputing(unittest.TestCase):
         """Verifies that the numerical solution closely matches the analytical solution."""
         N, dt, c_wave, L, n_mode = 100, 0.001, 1.0, 1.0, 2
         x = np.linspace(0, L, N + 1)
-        psi0 = np.sin(n_mode * np.pi * x) # Initial condition i [cite: 58]
+        psi0 = np.sin(n_mode * np.pi * x) # Initial condition i 
         
         t_max = 0.5
         psi_history, _ = solve_wave_equation(psi0, N, dt, c=c_wave, L=L, t_max=t_max)
@@ -53,7 +53,7 @@ class TestScientificComputing(unittest.TestCase):
     def test_diffusion_x_symmetry(self):
         """
         Since initial/boundary conditions only depend on y, 
-        the solution should be identical across all x for a fixed y[cite: 99].
+        the solution should be identical across all x for a fixed y
         """
         N = 20
         c_final = solve_diffusion_2d(N, T=0.05, dt=0.0001)
@@ -65,7 +65,7 @@ class TestScientificComputing(unittest.TestCase):
 
     def test_diffusion_steady_state_limit(self):
         """
-        For t -> infinity, the concentration profile should be a straight line[cite: 104, 105].
+        For t -> infinity, the concentration profile should be a straight line.
         """
         N = 10
         # Run for a long time (T=2.0) to approach steady state
