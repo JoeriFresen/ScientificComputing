@@ -3,39 +3,40 @@ import matplotlib.pyplot as plt
 
 def solve_wave_equation(psi_initial, N, dt, c=1.0, L=1.0, t_max=2.0):
     """
-    Solve the 1D wave equation using the explicit finite difference method.
-    Discretizes: d^2Psi/dt^2 = c^2 d^2Psi/dx^2
+    Solve the 1D wave equation using Euler's method.
+    Treats the wave equation as a first-order system:
+        dPsi/dt = v
+        dv/dt   = c^2 * d^2Psi/dx^2
+    and applies forward Euler time-stepping to both variables.
+
+    Note: Forward Euler is not symplectic. For oscillatory systems it
+    systematically gains energy, which becomes visible over long times.
     """
     dx = L / N
-    alpha = (c * dt / dx)
-
-    # Check Courant stability condition: alpha must be <= 1
-    if alpha > 1:
-        print(f"Warning: Courant number {alpha:.2f} > 1. Unstable!")
-
     n_steps = int(t_max / dt) + 1
     x = np.linspace(0, L, N + 1)
 
-    # Initialize solution matrix (time steps x spatial points)
+    # Initialize solution matrix and velocity
     psi = np.zeros((n_steps, N + 1))
+    v = np.zeros(N + 1)
+
     psi[0, :] = psi_initial
+    # Initial velocity is zero: Psi_t(x, t=0) = 0
 
-    # Step 1: Initial Velocity = 0 condition
-    # Uses special case formula for the first step to avoid t-dt index
-    # Change: Optimized with array slicing [1:-1] instead of a manual for-loop to increase speed #
-    psi[1, 1:-1] = psi[0, 1:-1] + 0.5 * alpha**2 * (psi[0, 2:] - 2*psi[0, 1:-1] + psi[0, :-2])
+    c_sq_dx_sq = c**2 / dx**2
 
-    # Time Stepping (Central Difference)
-    for n in range(1, n_steps - 1):
-        # Change: Used vectorized NumPy operations for the main loop to handle the entire string at once #
-        # Change: Standardized indexing to psi[n+1], psi[n], and psi[n-1] for better readability #
-        psi[n+1, 1:-1] = (2 * psi[n, 1:-1] - psi[n-1, 1:-1] +
-                          alpha**2 * (psi[n, 2:] - 2*psi[n, 1:-1] + psi[n, :-2]))
+    for n in range(n_steps - 1):
+        # Compute acceleration: a = c^2 * d^2Psi/dx^2
+        a = np.zeros(N + 1)
+        a[1:-1] = c_sq_dx_sq * (psi[n, 2:] - 2 * psi[n, 1:-1] + psi[n, :-2])
 
-        # Enforce Fixed Boundary Conditions: Psi(x=0)=0 and Psi(x=L)=0
-        # Change: Explicitly set boundaries to zero at every time step for stability #
-        psi[n+1, 0] = 0
-        psi[n+1, -1] = 0
+        # Forward Euler update (both use values at current time n)
+        psi[n + 1, :] = psi[n, :] + dt * v
+        v = v + dt * a
+
+        # Enforce fixed boundary conditions: Psi(x=0) = 0, Psi(x=L) = 0
+        psi[n + 1, 0] = 0.0
+        psi[n + 1, -1] = 0.0
 
     return psi, x
 

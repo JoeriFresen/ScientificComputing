@@ -126,45 +126,70 @@ def run_experiment_c():
         plt.close()
 
 def run_experiment_bonus():
-    """Run and plot the results for the Optional Leapfrog Bonus"""
-    print("Running Optional Bonus: Leapfrog vs Explicit Stability...")
+    """Run and plot the results for the Optional Leapfrog Bonus.
+    Compares the forward Euler method (which is not symplectic and gains energy)
+    against the Leapfrog method (which is symplectic and conserves energy)."""
+    print("Running Optional Bonus: Euler vs Leapfrog Stability...")
     L = 1.0
     N = 100
     c = 1.0
     dt = 0.001
     x = np.linspace(0, L, N + 1)
-
-    # Use a long time to clearly see error accumulation in explicit
-    t_max = 20.0
-
-    # We use sin(2pix)
     psi0 = initial_condition_1(x)
 
-    print("  Solving with Explicit Method...")
-    psi_explicit, _ = solve_wave_equation(psi0, N, dt, c=c, L=L, t_max=t_max)
+    # --- Panel 1: String state comparison at a moderate time ---
+    # At t=1.5 the Euler drift is visible but hasn't blown up yet
+    t_compare = 1.5
+    psi_euler_short, _ = solve_wave_equation(psi0, N, dt, c=c, L=L, t_max=t_compare)
+    psi_lf_short, _ = solve_wave_equation_leapfrog(psi0, N, dt, c=c, L=L, t_max=t_compare)
+    # Analytical: sin(2*pi*x) * cos(2*pi*1.5) = sin(2*pi*x) * cos(3*pi) = -sin(2*pi*x)
+    analytical = np.sin(2 * np.pi * x) * np.cos(2 * np.pi * c * t_compare / L)
 
+    # --- Panel 2: Amplitude over time on log scale to show divergence ---
+    t_long = 3.0  # Euler diverges around t~2.5
+    print("  Solving with Euler Method...")
+    psi_euler, _ = solve_wave_equation(psi0, N, dt, c=c, L=L, t_max=t_long)
     print("  Solving with Symplectic Leapfrog Method...")
-    psi_leapfrog, _ = solve_wave_equation_leapfrog(psi0, N, dt, c=c, L=L, t_max=t_max)
+    psi_leapfrog, _ = solve_wave_equation_leapfrog(psi0, N, dt, c=c, L=L, t_max=t_long)
 
-    # Let's compare the string state at the very end
-    plt.figure(figsize=(10, 6))
-    plt.plot(x, psi0, 'k--', label="t = 0 (Initial)", alpha=0.5)
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    fig.suptitle("Euler vs Leapfrog: Stability Comparison", fontsize=16)
 
-    # analytical solution at t_max should be back to sin(2*pi*x) if t_max is an integer multiple of the period
-    # period = L / c = 1.0. So at t=20.0, it's exactly the initial condition.
-    plt.plot(x, psi_explicit[-1, :], 'r-', label="Explicit Method (t=20)")
-    plt.plot(x, psi_leapfrog[-1, :], 'b-', label="Leapfrog Method (t=20)")
+    # Panel 1
+    ax = axes[0]
+    ax.plot(x, analytical, 'k--', label=f"Exact (t={t_compare})", alpha=0.5)
+    ax.plot(x, psi_euler_short[-1, :], 'r-', label=f"Euler (t={t_compare})")
+    ax.plot(x, psi_lf_short[-1, :], 'b-', label=f"Leapfrog (t={t_compare})")
+    ax.set_title(f"String State at t = {t_compare}")
+    ax.set_xlabel("Position (x)")
+    ax.set_ylabel("Amplitude (Ψ)")
+    ax.legend()
+    ax.grid(True)
 
-    plt.title(f"Wave Equation Stability after Long Time (t={t_max})")
-    plt.xlabel("Position (x)")
-    plt.ylabel("Amplitude (Psi)")
-    plt.legend()
-    plt.grid(True)
+    # Panel 2: Log-scale amplitude
+    ax = axes[1]
+    n_steps = psi_euler.shape[0]
+    sample_interval = 100
+    sample_indices = range(0, n_steps, sample_interval)
+    times = [i * dt for i in sample_indices]
+    amp_euler = [np.max(np.abs(psi_euler[i, :])) for i in sample_indices]
+    amp_leapfrog = [np.max(np.abs(psi_leapfrog[i, :])) for i in sample_indices]
 
+    ax.semilogy(times, amp_euler, 'r-', label="Euler", linewidth=1)
+    ax.semilogy(times, amp_leapfrog, 'b-', label="Leapfrog", linewidth=1)
+    ax.axhline(y=1.0, color='k', linestyle='--', alpha=0.5, label="True amplitude")
+    ax.set_title("Maximum Amplitude Over Time")
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Max |Ψ| (log scale)")
+    ax.legend()
+    ax.grid(True)
+
+    plt.tight_layout()
     filepath = os.path.join("figures", "wave_plot_leapfrog_comparison.png")
     plt.savefig(filepath, dpi=300)
     plt.close()
     print(f"Saved {filepath}")
+
 
 
 if __name__ == "__main__":
